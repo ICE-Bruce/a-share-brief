@@ -1,0 +1,13 @@
+{
+  "unit_tests_passed": 16,
+  "desktop_and_mobile_no_overflow": true,
+  "tabs": true,
+  "empty_state_no_fake_quotes": true,
+  "local_http_data_read": "not tested: browser policy blocks localhost; no bypass attempted",
+  "unsafe_text_escaped": true,
+  "historical_report_warning": true,
+  "page_errors": [],
+  "github_api_mutations": "mock tested only, no account access",
+  "real_deployment": "not executed",
+  "live_market_service": "not connected"
+}

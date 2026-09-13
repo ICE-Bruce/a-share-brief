@@ -1,0 +1,55 @@
+name: Publish market brief
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+  schedule:
+    # UTC 01:00 / 06:00 = Beijing 09:00 / 14:00.
+    - cron: '0 1,6 * * *'
+    # Beijing 08:07--22:07. Polls reports, NOT raw market data.
+    - cron: '7 0-14 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.event_name != 'schedule' || vars.ENABLE_DATA_UPDATES == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate or import verified report bundle
+        id: update
+        env:
+          REPORT_BUNDLE_URL: ${{ vars.REPORT_BUNDLE_URL }}
+        run: python3 scripts/update.py
+      - name: Save public report history
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add site/data/latest.json site/data/status.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update report data or coverage status'
+            git push
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Surface importer failure after publishing coverage status
+        if: steps.update.outputs.fetch_failed == 'true'
+        run: |
+          echo 'Report import failed. Previous data and a coverage warning were published.'
+          exit 1
